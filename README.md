@@ -3,7 +3,7 @@
 **Course:** Data Visualisation & Reporting  
 **Institution:** Università degli Studi della Campania 'Luigi Vanvitelli'  
 **Year:** 2nd year BSc · 2023–2024  
-**Grade:** 30/30 cum laude  
+**Grade:** 28/30
 
 ---
 
