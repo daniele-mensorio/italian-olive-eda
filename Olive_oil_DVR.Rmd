@@ -39,8 +39,8 @@ library(waffle)
 # Data
 
 ```{r}
-olive <- read.csv("~/Desktop/Università Daniele/Second Year/Data visulisation and reporting/LAB/data/olive.csv")
-view(olive)
+olive <- read.csv("data/olive.csv")
+#view(olive)
 DT::datatable(olive)
 
 #let's transform the 2 character variables (region and area) into a catgeorical variable
