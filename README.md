@@ -1,138 +1,104 @@
-# Computer Systems Modelling — R & JMT
+# Italian Olive Oil — Data Visualisation & Reporting
 
-![R](https://img.shields.io/badge/R-statistical_analysis-276DC3?style=flat&logo=r&logoColor=white)
-![JMT](https://img.shields.io/badge/JMT-queueing_simulation-orange?style=flat)
-![Grade](https://img.shields.io/badge/Grade-29%2F30-brightgreen?style=flat)
+![R](https://img.shields.io/badge/R-R_Markdown-276DC3?style=flat&logo=r&logoColor=white)
+![ggplot2](https://img.shields.io/badge/ggplot2-visualisation-blue?style=flat)
 ![University](https://img.shields.io/badge/Università_Vanvitelli-BSc_Data_Analytics-darkred?style=flat)
 
-**Course:** Computer Systems Modelling and Semantic Web  
+**Course:** Data Visualisation and Reporting  
 **Institution:** Università degli Studi della Campania 'Luigi Vanvitelli'  
-**Degree:** BSc in Data Analytics · 2024–2025  
-**Grade:** 29/30
+**Degree:** BSc in Data Analytics · 2023–2024
 
 ---
 
 ## Overview
 
-A full performance modelling study of an **ARM big.LITTLE heterogeneous processor architecture**, combining statistical workload characterisation from real execution traces with closed queueing network simulation. The project is split into two parts: trace analysis in **R** and system simulation in **JMT (Java Modelling Tools)**.
+An exploratory data analysis and visualisation report on 572 Italian olive oil samples, produced as an **R Markdown** document rendered to interactive HTML. The analysis explores the geographical distribution of samples across Italian regions and areas, and the fatty acid composition profiles that distinguish them.
+
+The report is fully reproducible: all code is embedded in the `.Rmd` source with `code_folding: hide`, making it readable as a clean narrative while keeping the full pipeline accessible.
 
 ---
 
-## Part 1 — Workload Analysis & Distribution Fitting (R)
+## Dataset
 
-Four execution trace files (`n = 50,000` samples each) record task completion times on two core types under two workload classes in the ARM big.LITTLE architecture:
+**Source:** Gasteiger & Zupan (1999), *Neural Networks in Chemistry and Drug Design*  
+**Originally collected:** October 8, 1999  
+**Field:** Computational Chemistry and Molecular Modelling  
+**Original purpose:** Benchmarking classification methods (backpropagation vs. Kohonen networks) on chemical composition data
 
-| Trace | Core type | Workload class |
+| Property | Value |
+|---|---|
+| Observations | 572 olive oil samples |
+| Variables | 11 |
+| Missing values | None |
+
+**Variables:**
+
+| Variable | Type | Description |
 |---|---|---|
-| `traceB-HH.txt` | High Performance | Heavy computation |
-| `traceB-HE.txt` | Energy Efficient | Heavy computation |
-| `traceB-LH.txt` | High Performance | Low computation |
-| `traceB-LE.txt` | Energy Efficient | Low computation |
-
-### Statistical Summary
-
-| Trace | Mean (s) | Std Dev | CV | Skewness | Kurtosis |
-|---|---|---|---|---|---|
-| traceB-HH | 24.13 | 35.20 | 1.459 | 4.011 | 23.78 |
-| traceB-HE | 96.56 | 141.78 | 1.468 | 4.068 | 25.14 |
-| traceB-LH | 1.50 | 0.433 | 0.288 | 0.593 | 0.533 |
-| traceB-LE | 4.80 | 1.383 | 0.288 | 0.569 | 0.439 |
-
-The coefficient of variation (CV) is used as the primary criterion for distribution family selection:
-
-- **CV > 1** (traceB-HH, traceB-HE): high variance relative to mean, leptokurtic shape → candidate distributions: **Hyper-Exponential**, Hyper-Erlang, Gamma
-- **CV < 1** (traceB-LH, traceB-LE): low variance, near-symmetric shape → candidate distributions: **Hypo-Exponential**, Erlang, Gamma, Normal, Weibull
-
-### Distribution Fitting Methodology
-
-Parameter estimation via **Maximum Likelihood Estimation (MLE)** and **Method of Moments**, solved numerically where closed-form solutions are unavailable (e.g. Hyper-Exponential requires numerical optimisation of the likelihood gradient).
-
-**Fitted parameters:**
-
-| Trace | Best-fit distribution | Key parameters |
-|---|---|---|
-| traceB-HH | Hyper-Exponential | λ₁=0.01656, λ₂=0.06634, p=0.1997 |
-| traceB-HE | Hyper-Exponential | λ₁=0.00409, λ₂=0.01662, p=0.1974 |
-| traceB-LH | Gamma / Erlang | shape=12.02, scale=0.125 / k=12, rate=7.998 |
-| traceB-LE | Gamma / Erlang | shape=12.26, scale=0.395 / k=12, rate=2.512 |
-
-### Visualisation Pipeline
-
-Three-stage goodness-of-fit assessment for each trace × distribution combination:
-
-1. **PDF overlay** — empirical kernel density vs theoretical PDF for all candidate distributions on a single plot (colour-coded)
-2. **CDF overlay** — empirical ECDF (step function) vs theoretical CDF
-3. **Q-Q plots** — all candidate distributions overlaid on a single Q-Q plot for direct visual comparison; identity line as reference
-
-All plots produced with `ggplot2` and assembled into composite grids with `patchwork`.
-
-### R Dependencies
-
-```r
-library(psych)          # descriptive statistics (describe())
-library(ggplot2)        # visualisation
-library(patchwork)      # plot composition
-library(distributions3) # Erlang distribution (dErlang, pErlang)
-library(Distributacalcul) # extended distribution support
-library(tidyr)          # pivot_longer for multi-distribution overlays
-```
+| `region` | Factor (3 levels) | Southern Italy · Sardinia · Northern Italy |
+| `area` | Factor (9 levels) | North-Apulia, Calabria, South-Apulia, Sicily, Inland-Sardinia, Coast-Sardinia, Umbria, East-Liguria, West-Liguria |
+| `palmitic` | Numeric | % palmitic acid |
+| `palmitoleic` | Numeric | % palmitoleic acid |
+| `stearic` | Numeric | % stearic acid |
+| `oleic` | Numeric | % oleic acid |
+| `linoleic` | Numeric | % linoleic acid |
+| `linolenic` | Numeric | % linolenic acid |
+| `arachidic` | Numeric | % arachidic acid |
+| `eicosenoic` | Numeric | % eicosenoic acid |
 
 ---
 
-## Part 2 — Closed Queueing Network Simulation (JMT)
+## Analysis Structure
 
-The ARM big.LITTLE system is modelled as a **closed multiclass queueing network** simulated in JMT (Java Modelling Tools). The model captures two competing workload classes sharing five service stations.
+**Data quality checks** — NA count per variable (no missing values found); boxplot-based outlier inspection per region and area.
 
-### Workload Classes
+**Descriptive summary** — Full `dfSummary()` table via `summarytools`, covering frequency distributions, histograms, and summary statistics for all 11 variables.
 
-| Class | Type | Population | Reference station |
-|---|---|---|---|
-| Heavy computation tasks | Closed | 20 customers | Storage |
-| Low computation tasks | Closed | 32 customers | Storage |
+**Geographical composition** — Sample distribution across the 3 regions and 9 areas visualised via pie charts and an interactive hierarchical treemap (`treemap` + `d3treeR`), showing the two-level region → area nesting.
 
-### Network Topology
+**Fatty acid profiles** — Average percentage of each of the 8 fatty acids computed at three levels of granularity:
+- Overall (all 572 samples) — pie chart
+- By region (Southern Italy, Sardinia, Northern Italy) — 3-panel pie chart grid via `ggpubr::ggarrange()`
+- By area (all 9 areas) — 3×3 grid of pie charts via `gridExtra::grid.arrange()`
 
-Five stations, each modelled as a queue + server + probabilistic router:
+---
 
-| Station | Server type | Notes |
+## Visualisation Techniques
+
+| Chart type | Purpose | Package |
 |---|---|---|
-| **Storage** | PS (Processor Sharing) | Reference source for both classes |
-| **I/O** | PS (Processor Sharing) | Shared I/O subsystem |
-| **Network** | PS (Processor Sharing) | Interconnect/bus |
-| **High Performance Cores** | FCFS | big cores — lower service time for heavy tasks |
-| **Energy Efficient Cores** | FCFS | LITTLE cores — fitted trace distributions as service times |
-
-Service time distributions at the CPU stations are parameterised using the fitted distributions from Part 1 (Hyper-Exponential for heavy tasks, Gamma/Erlang for light tasks). I/O and Network stations use Exponential service times.
-
-### Performance Metrics Collected
-
-Per station × per class: **Throughput**, **Utilization**, **Number of Customers**, **Residence Time**, **Response Time**.  
-System-level: **System Throughput** and **System Response Time** for each class.
-
-Simulation configured with `maxSamples=1,000,000` and confidence interval parameters `α=0.01`, `precision=0.03`.
-
-### Running the Simulation
-
-Open `PROJECT.jsimg` in **JMT** (Java Modelling Tools, free download at [jmt.sourceforge.net](http://jmt.sourceforge.net)) and run the simulation directly. No installation of additional dependencies required beyond JMT itself.
+| Pie chart | Region/area composition; fatty acid breakdown | `ggplot2` + `coord_polar` |
+| Interactive treemap | Hierarchical region → area drill-down | `treemap` + `d3treeR` |
+| Boxplot | Outlier detection per region | `ggplot2` |
+| Multi-panel grids | Per-region and per-area fatty acid comparisons | `ggpubr`, `gridExtra`, `patchwork` |
+| Interactive data tables | Dataset and summary exploration | `DT` |
 
 ---
 
 ## Repository Structure
 
 ```
-computer-system-modeling/
-├── TRACES_analysis.R       # Full R analysis: stats, distribution fitting, PDF/CDF/QQ plots
-├── PROJECT.jsimg           # JMT closed queueing network model (XML)
-├── PROJECT.pdf             # Full written report with derivations and results
+italian-olive-eda/
+├── Olive_oil_DVR.Rmd     # R Markdown source (fully reproducible)
+├── Olive_oil_DVR.html    # Rendered interactive HTML report
 └── README.md
 ```
 
+To reproduce: open `Olive_oil_DVR.Rmd` in RStudio and knit to HTML. Requires the `olive.csv` dataset to be placed at the path specified in the script, or update the `read.csv()` path accordingly.
+
 ---
 
-## Stack
+## R Dependencies
 
-| Tool | Purpose |
-|---|---|
-| R | Statistical analysis, distribution fitting, visualisation |
-| JMT (Java Modelling Tools) | Closed queueing network simulation |
-| ggplot2 / patchwork | PDF, CDF, Q-Q plot generation |
+```r
+library(tidyverse)      # data wrangling
+library(DT)             # interactive tables
+library(summarytools)   # dfSummary
+library(ggpubr)         # multi-panel arrangement
+library(gridExtra)      # grid.arrange
+library(patchwork)      # plot composition
+library(treemap)        # static treemap
+library(d3treeR)        # interactive D3 treemap
+library(waffle)         # waffle charts
+library(circlepackeR)   # circle packing
+```
