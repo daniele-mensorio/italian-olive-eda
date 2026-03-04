@@ -82,7 +82,7 @@ italian-olive-eda/
 ├── Olive_oil_DVR.Rmd     # R Markdown source (fully reproducible)
 ├── Olive_oil_DVR.html    # Rendered interactive HTML report
 ├── data/
-│   └── Olive.pdf
+│   └── Olive.csv
 └── README.md
 ```
 
